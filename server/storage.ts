@@ -1,37 +1,33 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import type { UserPlan, InsertPaymentProof } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getUserPlan(): Promise<UserPlan>;
+  upgradeToPro(proof: InsertPaymentProof): Promise<UserPlan>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private userPlan: UserPlan;
 
   constructor() {
-    this.users = new Map();
+    this.userPlan = {
+      plan: "free",
+    };
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUserPlan(): Promise<UserPlan> {
+    return this.userPlan;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async upgradeToPro(proof: InsertPaymentProof): Promise<UserPlan> {
+    // In a real app, you would verify the payment with the payment gateway
+    // For now, we just upgrade the plan
+    this.userPlan = {
+      plan: "pro",
+      upgradedAt: new Date().toISOString(),
+      paymentMethod: "upi",
+      transactionId: proof.utr,
+    };
+    return this.userPlan;
   }
 }
 
