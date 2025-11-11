@@ -100,7 +100,7 @@ Generate a complete Karma DNA analysis in JSON format with all required fields.`
           ]
         }
       },
-      contents: userPrompt
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
     });
 
     const rawJson = response.text;
@@ -184,7 +184,7 @@ Identify 1-3 most significant karmic debts and provide comprehensive analysis in
           required: ["debts", "overallGuidance"]
         }
       },
-      contents: userPrompt
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
     });
 
     const rawJson = response.text;
@@ -283,7 +283,7 @@ Generate comprehensive compatibility analysis in JSON format.`;
           ]
         }
       },
-      contents: userPrompt
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
     });
 
     const rawJson = response.text;
