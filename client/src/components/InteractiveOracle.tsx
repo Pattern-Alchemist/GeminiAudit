@@ -6,6 +6,7 @@ import s from "./InteractiveOracle.module.css";
 export type OracleCard = {
   angle?: number;
   badge?: string;
+  image?: string;
   title: string;
   text: string;
 };
@@ -172,8 +173,14 @@ export default function InteractiveOracle({
                 className={s.card}
                 onClick={() => onCardClick?.(c, i)}
                 aria-label={`${c.title}: ${c.text}`}
+                data-testid={`card-oracle-${i}`}
               >
-                <span className={s.badge}>{c.badge ?? "✨"}</span>
+                {c.image && (
+                  <div className={s.cardImageWrapper}>
+                    <img src={c.image} alt={c.title} className={s.cardImage} />
+                  </div>
+                )}
+                {!c.image && c.badge && <span className={s.badge}>{c.badge}</span>}
                 <h4>{c.title}</h4>
                 <p>{c.text}</p>
               </div>

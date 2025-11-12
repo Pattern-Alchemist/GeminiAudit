@@ -12,6 +12,15 @@ import {
 } from "lucide-react";
 import InteractiveOracle from "@/components/InteractiveOracle";
 
+import fluxImage from "@assets/generated_images/Cosmic_energy_flux_spiral_2acbdcfb.png";
+import compatibilityImage from "@assets/generated_images/Merging_galaxy_compatibility_d19a37d1.png";
+import archetypeImage from "@assets/generated_images/Sacred_geometric_crystal_archetype_d6a3b7bd.png";
+import timelineImage from "@assets/generated_images/Money_cycle_waveform_5d675db5.png";
+import remedialImage from "@assets/generated_images/Sacred_ritual_star_mandala_986ee9a3.png";
+import signalsImage from "@assets/generated_images/Cosmic_signal_transmission_waves_61ced96b.png";
+import pathsImage from "@assets/generated_images/Branching_destiny_paths_182fb06b.png";
+import talismansImage from "@assets/generated_images/Mystical_talisman_crystals_8a191cc7.png";
+
 export default function Home() {
   const features = [
     {
@@ -56,49 +65,49 @@ export default function Home() {
         cards={[
           {
             angle: 10,
-            badge: "⚡ Flux",
+            image: fluxImage,
             title: "Cosmic Flux",
             text: "Active transits & energy spikes.",
           },
           {
             angle: 55,
-            badge: "💞 Synastry",
+            image: compatibilityImage,
             title: "Compatibility",
             text: "Emotional & spiritual harmonics.",
           },
           {
             angle: 100,
-            badge: "🧠 Archetypes",
+            image: archetypeImage,
             title: "Persona Lens",
             text: "Shadow traits & latent gifts.",
           },
           {
             angle: 145,
-            badge: "📈 Timeline",
+            image: timelineImage,
             title: "Money Cycle",
             text: "Cashflow periods & windows.",
           },
           {
             angle: 190,
-            badge: "⭐ Remedial",
+            image: remedialImage,
             title: "Upāyas",
             text: "3 rituals to balance forces.",
           },
           {
             angle: 235,
-            badge: "📡 Signals",
+            image: signalsImage,
             title: "Daily Dharma",
             text: "Micro-actions for traction.",
           },
           {
             angle: 280,
-            badge: "🧭 Paths",
+            image: pathsImage,
             title: "Probable Futures",
             text: "Choose a likely branch.",
           },
           {
             angle: 325,
-            badge: "💎 Assets",
+            image: talismansImage,
             title: "Talismans",
             text: "Stones & mantras that fit.",
           },
