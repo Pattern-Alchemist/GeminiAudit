@@ -159,7 +159,54 @@ export default function InteractiveOracle({
       </div>
       <div ref={stageRef} className={s.stage}>
         <canvas ref={canvasRef} className={s.stars} />
+        <div className={s.atmosphericFog} />
+        <div className={s.depthLayer1} />
+        <div className={s.depthLayer2} />
         <div ref={sphereRef} className={s.sphere}>
+          <svg className={s.constellation} viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="nodeGlow">
+                <stop offset="0%" stopColor="rgba(96, 165, 250, 0.8)" />
+                <stop offset="50%" stopColor="rgba(96, 165, 250, 0.4)" />
+                <stop offset="100%" stopColor="rgba(96, 165, 250, 0)" />
+              </radialGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            
+            <g className={s.constellationLines}>
+              <line x1="200" y1="100" x2="150" y2="160" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="200" y1="100" x2="250" y2="160" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="150" y1="160" x2="120" y2="220" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="250" y1="160" x2="280" y2="220" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="120" y1="220" x2="150" y2="280" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="280" y1="220" x2="250" y2="280" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="150" y1="280" x2="200" y2="300" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="250" y1="280" x2="200" y2="300" stroke="rgba(96, 165, 250, 0.3)" strokeWidth="1" />
+              <line x1="150" y1="160" x2="250" y2="160" stroke="rgba(96, 165, 250, 0.2)" strokeWidth="1" />
+              <line x1="120" y1="220" x2="280" y2="220" stroke="rgba(96, 165, 250, 0.2)" strokeWidth="1" />
+              <line x1="150" y1="280" x2="250" y2="280" stroke="rgba(96, 165, 250, 0.2)" strokeWidth="1" />
+              <circle cx="200" cy="200" r="80" fill="none" stroke="rgba(96, 165, 250, 0.15)" strokeWidth="1" />
+              <circle cx="200" cy="200" r="110" fill="none" stroke="rgba(167, 139, 250, 0.1)" strokeWidth="1" strokeDasharray="4,4" />
+            </g>
+            
+            <g className={s.constellationNodes} filter="url(#glow)">
+              <circle cx="200" cy="100" r="3" fill="url(#nodeGlow)" />
+              <circle cx="150" cy="160" r="2.5" fill="url(#nodeGlow)" />
+              <circle cx="250" cy="160" r="2.5" fill="url(#nodeGlow)" />
+              <circle cx="120" cy="220" r="2.5" fill="url(#nodeGlow)" />
+              <circle cx="280" cy="220" r="2.5" fill="url(#nodeGlow)" />
+              <circle cx="150" cy="280" r="2.5" fill="url(#nodeGlow)" />
+              <circle cx="250" cy="280" r="2.5" fill="url(#nodeGlow)" />
+              <circle cx="200" cy="300" r="3" fill="url(#nodeGlow)" />
+              <circle cx="200" cy="200" r="4" fill="rgba(96, 165, 250, 0.6)" />
+            </g>
+          </svg>
           <div className={s.halo} />
           <div className={s.rings} />
           <div className={s.seal}>
@@ -174,7 +221,9 @@ export default function InteractiveOracle({
                 onClick={() => onCardClick?.(c, i)}
                 aria-label={`${c.title}: ${c.text}`}
                 data-testid={`card-oracle-${i}`}
+                style={{ "--card-index": i } as React.CSSProperties}
               >
+                <div className={s.cardShimmer} style={{ animationDelay: `${i * 0.5}s` }} />
                 {c.image && (
                   <div className={s.cardImageWrapper}>
                     <img src={c.image} alt={c.title} className={s.cardImage} />

@@ -360,18 +360,6 @@
   overflow: hidden;
 }
 
-.card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-  animation: cardShimmer 6s ease-in-out infinite;
-  animation-delay: calc(var(--card-index, 0) * 0.5s);
-}
-
 .card::after {
   content: "";
   position: absolute;
@@ -386,6 +374,18 @@
 
 .card:hover::after {
   opacity: 1;
+}
+
+.cardShimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: cardShimmer 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
 }
 
 @keyframes cardShimmer {
@@ -492,4 +492,221 @@
 
 .cta:active {
   transform: translateY(-1px) scale(1.02);
+}
+
+.constellation {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  height: 90%;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 2;
+  animation: constellationPulse 8s ease-in-out infinite;
+}
+
+@keyframes constellationPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.constellationLines {
+  animation: lineGlow 6s ease-in-out infinite;
+}
+
+@keyframes lineGlow {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.constellationNodes circle {
+  animation: nodePulse 3s ease-in-out infinite;
+}
+
+.constellationNodes circle:nth-child(2n) {
+  animation-delay: 0.5s;
+}
+
+.constellationNodes circle:nth-child(3n) {
+  animation-delay: 1s;
+}
+
+@keyframes nodePulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.atmosphericFog {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(96, 165, 250, 0.03) 0%,
+    rgba(167, 139, 250, 0.02) 30%,
+    transparent 70%
+  );
+  animation: fogDrift 20s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes fogDrift {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.1) translateY(-20px);
+    opacity: 0.8;
+  }
+}
+
+.depthLayer1 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    transparent 40%,
+    rgba(96, 165, 250, 0.05) 50%,
+    rgba(167, 139, 250, 0.08) 70%,
+    transparent 100%
+  );
+  animation: depthPulse1 12s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes depthPulse1 {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    opacity: 0.6;
+  }
+}
+
+.depthLayer2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(96, 165, 250, 0.1) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 70% 70%,
+    rgba(167, 139, 250, 0.08) 0%,
+    transparent 50%
+  );
+  animation: depthPulse2 15s ease-in-out infinite reverse;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(40px);
+}
+
+@keyframes depthPulse2 {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    135deg,
+    rgba(96, 165, 250, 0.4),
+    rgba(167, 139, 250, 0.3),
+    transparent 50%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.cardImageWrapper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cardImageWrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(96, 165, 250, 0.15) 0%,
+    transparent 70%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card:hover .cardImageWrapper::after {
+  opacity: 1;
 }
