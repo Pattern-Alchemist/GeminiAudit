@@ -12,11 +12,67 @@ import type {
 // - Note that the newest Gemini model series is "gemini-2.0-flash-exp"
 // This API key is from Gemini Developer API Key, not vertex AI API Key
 
-if (!process.env.GEMINI_API_KEY) {
-  console.warn("⚠️  GEMINI_API_KEY not found. AI analysis features will not work.");
+const API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || "";
+
+if (!API_KEY) {
+  console.warn("⚠️  GOOGLE_API_KEY not found. AI analysis features will not work.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+/**
+ * Retry helper for transient errors
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      const isRetryable = 
+        error?.message?.includes("429") || 
+        error?.message?.includes("503") ||
+        error?.message?.includes("timeout") ||
+        error?.message?.includes("ECONNRESET");
+      
+      if (!isRetryable || attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError || new Error("Retry failed");
+}
+
+/**
+ * Format error messages for better user experience
+ */
+function formatAIError(error: any): string {
+  if (error?.message?.includes("API key")) {
+    return "Invalid API key. Please check your configuration.";
+  }
+  if (error?.message?.includes("429")) {
+    return "Rate limit exceeded. Please try again in a few moments.";
+  }
+  if (error?.message?.includes("quota")) {
+    return "API quota exceeded. Please check your Gemini API usage.";
+  }
+  if (error?.message?.includes("timeout")) {
+    return "Request timed out. Please try again.";
+  }
+  return error?.message || "AI analysis failed. Please try again.";
+}
 
 /**
  * Analyze Karma DNA using birth data and AI-powered astrological insights
@@ -56,63 +112,66 @@ ${birthPlace ? `Birth Place: ${birthPlace}` : "Birth Place: Not provided"}
 Generate a complete Karma DNA analysis in JSON format with all required fields.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "object",
-          properties: {
-            coreLesson: { type: "string" },
-            shadowTrigger: { type: "string" },
-            boundaryRule: { type: "string" },
-            strengthsAnalysis: { type: "string" },
-            challengesAnalysis: { type: "string" },
-            actionSteps: {
-              type: "array",
-              items: { type: "string" }
-            },
-            integrityScore: { type: "number" },
-            reciprocityScore: { type: "number" },
-            valueScore: { type: "number" },
-            activationWindow: {
-              type: "object",
-              properties: {
-                start: { type: "string" },
-                end: { type: "string" },
-                description: { type: "string" }
+    const result = await retryWithBackoff(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash-exp",
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              coreLesson: { type: "string" },
+              shadowTrigger: { type: "string" },
+              boundaryRule: { type: "string" },
+              strengthsAnalysis: { type: "string" },
+              challengesAnalysis: { type: "string" },
+              actionSteps: {
+                type: "array",
+                items: { type: "string" }
               },
-              required: ["start", "end", "description"]
-            }
-          },
-          required: [
-            "coreLesson",
-            "shadowTrigger",
-            "boundaryRule",
-            "strengthsAnalysis",
-            "challengesAnalysis",
-            "actionSteps",
-            "integrityScore",
-            "reciprocityScore",
-            "valueScore",
-            "activationWindow"
-          ]
-        }
-      },
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+              integrityScore: { type: "number" },
+              reciprocityScore: { type: "number" },
+              valueScore: { type: "number" },
+              activationWindow: {
+                type: "object",
+                properties: {
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  description: { type: "string" }
+                },
+                required: ["start", "end", "description"]
+              }
+            },
+            required: [
+              "coreLesson",
+              "shadowTrigger",
+              "boundaryRule",
+              "strengthsAnalysis",
+              "challengesAnalysis",
+              "actionSteps",
+              "integrityScore",
+              "reciprocityScore",
+              "valueScore",
+              "activationWindow"
+            ]
+          }
+        },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+      });
+
+      const rawJson = response.text;
+      if (!rawJson) {
+        throw new Error("Empty response from Gemini AI");
+      }
+
+      return JSON.parse(rawJson) as KarmaDNAResult;
     });
 
-    const rawJson = response.text;
-    if (!rawJson) {
-      throw new Error("Empty response from Gemini AI");
-    }
-
-    const result: KarmaDNAResult = JSON.parse(rawJson);
     return result;
   } catch (error) {
-    console.error("Gemini AI Error:", error);
-    throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.error("Karma DNA Analysis Error:", error);
+    throw new Error(formatAIError(error));
   }
 }
 
@@ -153,50 +212,53 @@ Birth Date: ${birthDate}
 Identify 1-3 most significant karmic debts and provide comprehensive analysis in JSON format.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "object",
-          properties: {
-            debts: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  code: { type: "number" },
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  impact: { type: "string" },
-                  healingAction: { type: "string" },
-                  severity: { 
-                    type: "string",
-                    enum: ["low", "medium", "high"]
-                  }
-                },
-                required: ["code", "title", "description", "impact", "healingAction", "severity"]
-              }
+    const result = await retryWithBackoff(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash-exp",
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              debts: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    code: { type: "number" },
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    impact: { type: "string" },
+                    healingAction: { type: "string" },
+                    severity: { 
+                      type: "string",
+                      enum: ["low", "medium", "high"]
+                    }
+                  },
+                  required: ["code", "title", "description", "impact", "healingAction", "severity"]
+                }
+              },
+              overallGuidance: { type: "string" }
             },
-            overallGuidance: { type: "string" }
-          },
-          required: ["debts", "overallGuidance"]
-        }
-      },
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+            required: ["debts", "overallGuidance"]
+          }
+        },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+      });
+
+      const rawJson = response.text;
+      if (!rawJson) {
+        throw new Error("Empty response from Gemini AI");
+      }
+
+      return JSON.parse(rawJson) as KarmicDebtsResult;
     });
 
-    const rawJson = response.text;
-    if (!rawJson) {
-      throw new Error("Empty response from Gemini AI");
-    }
-
-    const result: KarmicDebtsResult = JSON.parse(rawJson);
     return result;
   } catch (error) {
-    console.error("Gemini AI Error:", error);
-    throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.error("Karmic Debts Analysis Error:", error);
+    throw new Error(formatAIError(error));
   }
 }
 
@@ -240,61 +302,64 @@ ${person2.birthPlace ? `Birth Place: ${person2.birthPlace}` : ""}
 Generate comprehensive compatibility analysis in JSON format.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "object",
-          properties: {
-            overallScore: { type: "number" },
-            mindCompatibility: { type: "number" },
-            heartCompatibility: { type: "number" },
-            willCompatibility: { type: "number" },
-            strengths: {
-              type: "array",
-              items: { type: "string" }
+    const result = await retryWithBackoff(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash-exp",
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              overallScore: { type: "number" },
+              mindCompatibility: { type: "number" },
+              heartCompatibility: { type: "number" },
+              willCompatibility: { type: "number" },
+              strengths: {
+                type: "array",
+                items: { type: "string" }
+              },
+              challenges: {
+                type: "array",
+                items: { type: "string" }
+              },
+              growthOpportunities: {
+                type: "array",
+                items: { type: "string" }
+              },
+              bondPurpose: { type: "string" },
+              recommendations: {
+                type: "array",
+                items: { type: "string" }
+              }
             },
-            challenges: {
-              type: "array",
-              items: { type: "string" }
-            },
-            growthOpportunities: {
-              type: "array",
-              items: { type: "string" }
-            },
-            bondPurpose: { type: "string" },
-            recommendations: {
-              type: "array",
-              items: { type: "string" }
-            }
-          },
-          required: [
-            "overallScore",
-            "mindCompatibility",
-            "heartCompatibility",
-            "willCompatibility",
-            "strengths",
-            "challenges",
-            "growthOpportunities",
-            "bondPurpose",
-            "recommendations"
-          ]
-        }
-      },
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+            required: [
+              "overallScore",
+              "mindCompatibility",
+              "heartCompatibility",
+              "willCompatibility",
+              "strengths",
+              "challenges",
+              "growthOpportunities",
+              "bondPurpose",
+              "recommendations"
+            ]
+          }
+        },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+      });
+
+      const rawJson = response.text;
+      if (!rawJson) {
+        throw new Error("Empty response from Gemini AI");
+      }
+
+      return JSON.parse(rawJson) as CompatibilityResult;
     });
 
-    const rawJson = response.text;
-    if (!rawJson) {
-      throw new Error("Empty response from Gemini AI");
-    }
-
-    const result: CompatibilityResult = JSON.parse(rawJson);
     return result;
   } catch (error) {
-    console.error("Gemini AI Error:", error);
-    throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.error("Compatibility Analysis Error:", error);
+    throw new Error(formatAIError(error));
   }
 }
