@@ -398,7 +398,6 @@
 }
 
 .card:hover {
-  transform: translate(-50%, -50%) scale(1.08) !important;
   background: 
     linear-gradient(135deg, rgba(96, 165, 250, 0.1), transparent 50%),
     linear-gradient(225deg, rgba(167, 139, 250, 0.1), transparent 50%),
