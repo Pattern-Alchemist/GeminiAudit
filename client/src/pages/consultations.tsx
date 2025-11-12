@@ -1,11 +1,27 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Video, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Clock, Video, MessageSquare, CheckCircle2, ExternalLink } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertAppointmentSchema, type InsertAppointment, type Appointment } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Consultations() {
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const { toast } = useToast();
+
   const sessions = [
     {
+      id: "karma-dna-dive",
       title: "Karma DNA Deep Dive",
       duration: "60 minutes",
       price: "₹2,999",
@@ -14,6 +30,7 @@ export default function Consultations() {
       features: ["Full birth chart analysis", "Core patterns & triggers", "90-day action plan", "Follow-up email support"]
     },
     {
+      id: "relationship-compatibility",
       title: "Relationship Compatibility",
       duration: "45 minutes",
       price: "₹2,499",
@@ -22,6 +39,7 @@ export default function Consultations() {
       features: ["Mind/Heart/Will compatibility", "Strength & challenge areas", "Growth opportunities", "Communication strategies"]
     },
     {
+      id: "career-path",
       title: "Career Path Reading",
       duration: "45 minutes",
       price: "₹2,499",
@@ -30,6 +48,7 @@ export default function Consultations() {
       features: ["Career dharma analysis", "Breakthrough windows", "Skill alignment", "Decision timing guidance"]
     },
     {
+      id: "monthly-checkin",
       title: "Monthly Check-In",
       duration: "30 minutes",
       price: "₹1,499",
@@ -39,28 +58,58 @@ export default function Consultations() {
     },
   ];
 
-  const howItWorks = [
-    {
-      step: "1",
-      title: "Choose Session",
-      description: "Select the consultation type that fits your current needs"
+  const { data: appointments, isLoading: appointmentsLoading } = useQuery<Appointment[]>({
+    queryKey: ["/api/appointments"],
+  });
+
+  const createAppointmentMutation = useMutation({
+    mutationFn: async (data: InsertAppointment) => {
+      const res = await apiRequest("POST", "/api/appointments", data);
+      return await res.json();
     },
-    {
-      step: "2",
-      title: "Schedule Time",
-      description: "Pick a convenient date and time from available slots"
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setBookingDialogOpen(false);
+      toast({
+        title: "Appointment Booked!",
+        description: "Check your email for confirmation and meeting link.",
+      });
+      form.reset();
     },
-    {
-      step: "3",
-      title: "Complete Payment",
-      description: "Secure payment via UPI, PayPal, or payment gateway"
+    onError: (error: any) => {
+      toast({
+        title: "Booking Failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
     },
-    {
-      step: "4",
-      title: "Join & Transform",
-      description: "Meet via video call and receive your personalized insights"
-    }
-  ];
+  });
+
+  const form = useForm<InsertAppointment>({
+    resolver: zodResolver(insertAppointmentSchema),
+    defaultValues: {
+      sessionType: "karma-dna-dive",
+      customerName: "",
+      customerEmail: "",
+      customerPhone: "",
+      scheduledAt: "",
+      notes: "",
+    },
+  });
+
+  function handleBookSession(sessionId: string) {
+    setSelectedSession(sessionId);
+    form.setValue("sessionType", sessionId as any);
+    setBookingDialogOpen(true);
+  }
+
+  function onSubmit(data: InsertAppointment) {
+    createAppointmentMutation.mutate(data);
+  }
+
+  const upcomingAppointments = appointments?.filter(
+    (a) => a.status !== "cancelled" && new Date(a.scheduledAt) > new Date()
+  ) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,6 +126,36 @@ export default function Consultations() {
             Work one-on-one with our astrologers for personalized, actionable guidance powered by years of experience and AI insights.
           </p>
         </div>
+
+        {/* Upcoming Appointments */}
+        {upcomingAppointments.length > 0 && (
+          <Card className="p-6 mb-8 bg-primary/5 border-primary/20" data-testid="card-upcoming-appointments">
+            <h2 className="text-xl font-heading font-bold mb-4">Your Upcoming Sessions</h2>
+            <div className="space-y-4">
+              {upcomingAppointments.map((appt) => (
+                <div key={appt.id} className="flex items-center justify-between gap-4 p-4 bg-card rounded-md" data-testid={`appointment-${appt.id}`}>
+                  <div className="flex-1">
+                    <div className="font-semibold mb-1">
+                      {sessions.find(s => s.id === appt.sessionType)?.title}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      {new Date(appt.scheduledAt).toLocaleString()}
+                    </div>
+                  </div>
+                  {appt.meetingUrl && (
+                    <Button asChild data-testid={`button-join-${appt.id}`}>
+                      <a href={appt.meetingUrl} target="_blank" rel="noreferrer">
+                        <Video className="h-4 w-4 mr-2" />
+                        Join Meeting
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Session Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-12">
@@ -113,7 +192,11 @@ export default function Consultations() {
                 ))}
               </div>
 
-              <Button className="w-full" data-testid={`button-book-${i}`}>
+              <Button 
+                className="w-full" 
+                onClick={() => handleBookSession(session.id)}
+                data-testid={`button-book-${i}`}
+              >
                 Book This Session
               </Button>
             </Card>
@@ -124,7 +207,12 @@ export default function Consultations() {
         <Card className="p-8 mb-12" data-testid="card-how-it-works">
           <h2 className="text-2xl font-heading font-bold text-center mb-8">How It Works</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            {howItWorks.map((item, i) => (
+            {[
+              { step: "1", title: "Choose Session", description: "Select the consultation type that fits your current needs" },
+              { step: "2", title: "Schedule Time", description: "Pick a convenient date and time from available slots" },
+              { step: "3", title: "Complete Payment", description: "Secure payment via UPI, PayPal, or payment gateway" },
+              { step: "4", title: "Join & Transform", description: "Meet via video call and receive your personalized insights" }
+            ].map((item, i) => (
               <div key={i} className="text-center">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <span className="text-xl font-bold text-primary">{item.step}</span>
@@ -156,6 +244,118 @@ export default function Consultations() {
           </div>
         </Card>
       </div>
+
+      {/* Booking Dialog */}
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent className="max-w-md" data-testid="dialog-book-appointment">
+          <DialogHeader>
+            <DialogTitle>Book Your Consultation</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="customerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your name" {...field} data-testid="input-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="customerEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="your@email.com" {...field} data-testid="input-email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="customerPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+91 1234567890" {...field} data-testid="input-phone" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="scheduledAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preferred Date & Time</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="datetime-local" 
+                        {...field} 
+                        data-testid="input-datetime"
+                        min={new Date().toISOString().slice(0, 16)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Special Requests (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Any specific topics you'd like to discuss..." 
+                        {...field} 
+                        data-testid="textarea-notes"
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setBookingDialogOpen(false)}
+                  className="flex-1"
+                  data-testid="button-cancel-booking"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={createAppointmentMutation.isPending}
+                  data-testid="button-submit-booking"
+                >
+                  {createAppointmentMutation.isPending ? "Booking..." : "Book Now"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

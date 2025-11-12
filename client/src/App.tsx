@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import Karma from "@/pages/karma";
 import Consultations from "@/pages/consultations";
 import Billing from "@/pages/billing";
+import Radio from "@/pages/radio";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/karma" component={Karma} />
           <Route path="/consultations" component={Consultations} />
+          <Route path="/radio" component={Radio} />
           <Route path="/billing" component={Billing} />
           <Route component={NotFound} />
         </Switch>

@@ -10,6 +10,7 @@ export function Header() {
     { href: "/dashboard", label: "Dashboard" },
     { href: "/karma", label: "Analysis Tools" },
     { href: "/consultations", label: "Consultations" },
+    { href: "/radio", label: "Radio" },
     { href: "/billing", label: "Billing" },
   ];
 

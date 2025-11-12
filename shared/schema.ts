@@ -106,3 +106,48 @@ export type UserPlan = z.infer<typeof userPlanSchema>;
 
 export const insertPaymentProofSchema = paymentProofSchema;
 export type InsertPaymentProof = z.infer<typeof insertPaymentProofSchema>;
+
+// Appointment Booking Types
+export const appointmentSchema = z.object({
+  id: z.string(),
+  sessionType: z.enum([
+    "karma-dna-dive",
+    "relationship-compatibility",
+    "career-path",
+    "monthly-checkin"
+  ]),
+  customerName: z.string(),
+  customerEmail: z.string().email(),
+  customerPhone: z.string().optional(),
+  scheduledAt: z.string(), // ISO date string
+  duration: z.number(), // in minutes
+  price: z.number(),
+  status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
+  meetingUrl: z.string().optional(),
+  notes: z.string().optional(),
+  createdAt: z.string(),
+});
+
+export type Appointment = z.infer<typeof appointmentSchema>;
+
+export const insertAppointmentSchema = z.object({
+  sessionType: z.enum([
+    "karma-dna-dive",
+    "relationship-compatibility", 
+    "career-path",
+    "monthly-checkin"
+  ]),
+  customerName: z.string().min(1, "Name is required"),
+  customerEmail: z.string().email("Valid email is required"),
+  customerPhone: z.string().optional(),
+  scheduledAt: z.string().min(1, "Appointment date/time is required"),
+  notes: z.string().optional(),
+});
+
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+
+export const updateAppointmentStatusSchema = z.object({
+  status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
+});
+
+export type UpdateAppointmentStatus = z.infer<typeof updateAppointmentStatusSchema>;

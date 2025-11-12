@@ -5,7 +5,9 @@ import { analyzeKarmaDNA, scanKarmicDebts, analyzeCompatibility } from "./gemini
 import { 
   analysisRequestSchema, 
   insertPaymentProofSchema,
-  compatibilityRequestSchema 
+  compatibilityRequestSchema,
+  insertAppointmentSchema,
+  updateAppointmentStatusSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -142,6 +144,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedPlan);
     } catch (error: any) {
       res.status(400).json({ error: error.message || "Invalid payment proof" });
+    }
+  });
+
+  // Get all appointments
+  app.get("/api/appointments", async (_req, res) => {
+    try {
+      const appointments = await storage.getAppointments();
+      res.json(appointments);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch appointments" });
+    }
+  });
+
+  // Get single appointment
+  app.get("/api/appointments/:id", async (req, res) => {
+    try {
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      res.json(appointment);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch appointment" });
+    }
+  });
+
+  // Create new appointment
+  app.post("/api/appointments", async (req, res) => {
+    try {
+      const appointmentData = insertAppointmentSchema.parse(req.body);
+      const appointment = await storage.createAppointment(appointmentData);
+      res.status(201).json(appointment);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create appointment" });
+    }
+  });
+
+  // Update appointment status
+  app.patch("/api/appointments/:id/status", async (req, res) => {
+    try {
+      const statusUpdate = updateAppointmentStatusSchema.parse(req.body);
+      const appointment = await storage.updateAppointmentStatus(req.params.id, statusUpdate);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      res.json(appointment);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update appointment" });
+    }
+  });
+
+  // Cancel appointment
+  app.delete("/api/appointments/:id", async (req, res) => {
+    try {
+      const appointment = await storage.cancelAppointment(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      res.json(appointment);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to cancel appointment" });
     }
   });
 
