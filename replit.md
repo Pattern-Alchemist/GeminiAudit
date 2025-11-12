@@ -127,8 +127,15 @@ curl -X POST http://localhost:5000/api/test-ai
 
 ## Known Limitations
 - Gemini API free tier has strict rate limits
-- Database features are planned but not yet implemented
+- Appointments use in-memory storage (data lost on server restart)
+  - Recommendation: Set up PostgreSQL database for persistent appointment storage
 - Payment integration is in development
+
+## Security Features
+- Appointment data protected by secure confirmation tokens (64-char hex)
+- No public endpoint exposes customer PII
+- Token-based access control for appointment retrieval
+- Tokens stored in browser localStorage for user's own bookings
 
 ## User Preferences
 - Use modern, clean TypeScript code
