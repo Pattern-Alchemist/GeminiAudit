@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,60 @@ import { insertAppointmentSchema, type InsertAppointment, type Appointment } fro
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Stored appointments with tokens in localStorage
+interface StoredAppointment {
+  id: string;
+  token: string;
+}
+
+const STORAGE_KEY = 'astrokalki_appointments';
+
+function getStoredAppointments(): StoredAppointment[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function storeAppointment(id: string, token: string) {
+  const appointments = getStoredAppointments();
+  appointments.push({ id, token });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments));
+}
+
 export default function Consultations() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Load appointments from localStorage on mount
+  useEffect(() => {
+    async function loadAppointments() {
+      const stored = getStoredAppointments();
+      const loaded: Appointment[] = [];
+      
+      for (const { id, token } of stored) {
+        try {
+          const res = await fetch(`/api/appointments/${id}?token=${token}`);
+          if (res.ok) {
+            const appointment = await res.json();
+            loaded.push(appointment);
+          }
+        } catch (error) {
+          console.error(`Failed to load appointment ${id}:`, error);
+        }
+      }
+      
+      setAppointments(loaded);
+      setAppointmentsLoading(false);
+    }
+    
+    loadAppointments();
+  }, []);
 
   const sessions = [
     {
@@ -58,17 +108,18 @@ export default function Consultations() {
     },
   ];
 
-  const { data: appointments, isLoading: appointmentsLoading } = useQuery<Appointment[]>({
-    queryKey: ["/api/appointments"],
-  });
-
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: InsertAppointment) => {
       const res = await apiRequest("POST", "/api/appointments", data);
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    onSuccess: (appointment: Appointment) => {
+      // Store appointment with token in localStorage
+      storeAppointment(appointment.id, appointment.confirmationToken);
+      
+      // Add to appointments list
+      setAppointments(prev => [...prev, appointment]);
+      
       setBookingDialogOpen(false);
       toast({
         title: "Appointment Booked!",

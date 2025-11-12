@@ -147,22 +147,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all appointments
-  app.get("/api/appointments", async (_req, res) => {
-    try {
-      const appointments = await storage.getAppointments();
-      res.json(appointments);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message || "Failed to fetch appointments" });
-    }
-  });
-
-  // Get single appointment
+  // Get single appointment (requires confirmation token for security)
   app.get("/api/appointments/:id", async (req, res) => {
     try {
-      const appointment = await storage.getAppointment(req.params.id);
+      const { token } = req.query;
+      if (!token || typeof token !== 'string') {
+        return res.status(401).json({ error: "Confirmation token required" });
+      }
+      
+      const appointment = await storage.getAppointment(req.params.id, token);
       if (!appointment) {
-        return res.status(404).json({ error: "Appointment not found" });
+        return res.status(404).json({ error: "Appointment not found or invalid token" });
       }
       res.json(appointment);
     } catch (error: any) {

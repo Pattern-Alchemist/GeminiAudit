@@ -5,6 +5,12 @@ AstroKalki is a comprehensive Vedic astrology and karma analysis platform that p
 
 ## Recent Changes (2025-01-12)
 
+### New Features
+- **Radio Streaming**: Integrated Zeno.FM live radio player with dedicated page
+- **Video Consultations**: Added appointment booking system with Jitsi Meet video integration
+- **Consultation Booking**: Complete booking flow with date/time selection and appointment management
+- **Navigation**: Enhanced header with Radio and Consultations navigation links
+
 ### Migration to Replit Environment
 - Migrated project from Replit Agent to Replit environment
 - Updated to use `GOOGLE_API_KEY` for Gemini AI integration

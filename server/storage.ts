@@ -1,10 +1,10 @@
 import type { UserPlan, InsertPaymentProof, Appointment, InsertAppointment, UpdateAppointmentStatus } from "@shared/schema";
+import { randomBytes } from "crypto";
 
 export interface IStorage {
   getUserPlan(): Promise<UserPlan>;
   upgradeToPro(proof: InsertPaymentProof): Promise<UserPlan>;
-  getAppointments(): Promise<Appointment[]>;
-  getAppointment(id: string): Promise<Appointment | null>;
+  getAppointment(id: string, token: string): Promise<Appointment | null>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointmentStatus(id: string, update: UpdateAppointmentStatus): Promise<Appointment | null>;
   cancelAppointment(id: string): Promise<Appointment | null>;
@@ -37,18 +37,19 @@ export class MemStorage implements IStorage {
     return this.userPlan;
   }
 
-  async getAppointments(): Promise<Appointment[]> {
-    return Array.from(this.appointments.values()).sort(
-      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
-    );
-  }
-
-  async getAppointment(id: string): Promise<Appointment | null> {
-    return this.appointments.get(id) || null;
+  async getAppointment(id: string, token: string): Promise<Appointment | null> {
+    const appointment = this.appointments.get(id);
+    if (!appointment || appointment.confirmationToken !== token) {
+      return null;
+    }
+    return appointment;
   }
 
   async createAppointment(insert: InsertAppointment): Promise<Appointment> {
     const id = `appt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generate secure confirmation token (32 bytes = 64 hex chars)
+    const confirmationToken = randomBytes(32).toString('hex');
     
     // Session details mapping
     const sessionDetails = {
@@ -65,6 +66,7 @@ export class MemStorage implements IStorage {
 
     const appointment: Appointment = {
       id,
+      confirmationToken,
       sessionType: insert.sessionType,
       customerName: insert.customerName,
       customerEmail: insert.customerEmail,

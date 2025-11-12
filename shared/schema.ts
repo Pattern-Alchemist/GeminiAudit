@@ -110,6 +110,7 @@ export type InsertPaymentProof = z.infer<typeof insertPaymentProofSchema>;
 // Appointment Booking Types
 export const appointmentSchema = z.object({
   id: z.string(),
+  confirmationToken: z.string(), // Secure token for accessing appointment
   sessionType: z.enum([
     "karma-dna-dive",
     "relationship-compatibility",
